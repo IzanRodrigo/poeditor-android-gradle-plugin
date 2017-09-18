@@ -13,181 +13,88 @@ import org.gradle.api.tasks.TaskAction
  * Created by imartinez on 11/1/16.
  */
 class ImportPoEditorStringsTask extends DefaultTask {
+   private static def POEDITOR_API_URL = 'https://poeditor.com/api/'
 
-    @TaskAction
-    def importPoEditorStrings() {
+   @TaskAction
+   def importPoEditorStrings() {
+      // Read config
+      PoEditorPluginExtension args = project.extensions.poEditorPlugin
+      def apiToken = Objects.requireNonNull(args.apiToken, "apiToken == null")
+      def projectId = Objects.requireNonNull(args.projectId, "projectId == null")
+      def defaultLang = Objects.requireNonNull(args.defaultLang, "defaultLang == null")
+      def resDirPath = Objects.requireNonNull(args.destPath, "destPath == null")
+      def fileName = Objects.requireNonNull(args.destFile, "destFile == null")
+      def checkProgress = args.discardIncompleteLanguages;
 
-        def String POEDITOR_API_URL = 'https://poeditor.com/api/'
+      // Retrieve available languages from PoEditor
+      def jsonParser = new JsonSlurper()
+      def langs = ['curl', '-X', 'POST', '-d', "api_token=${apiToken}", '-d', 'action=list_languages', '-d', "id=${projectId}", POEDITOR_API_URL].execute()
+      def langsJson = jsonParser.parseText(langs.text)
 
-        // Check if needed extension and parameters are set
-        def apiToken = ""
-        def projectId = ""
-        def defaultLang = ""
-        def resDirPath = ""
-        def fileName = ""
-        def generateTabletRes = false
+      // Check if the response was 200
+      if (langsJson.response.code != "200") {
+         throw new IllegalStateException(
+               "An error occurred while trying to export from PoEditor API: \n\n" +
+                     langsJson.toString()
+         )
+      }
 
-        try {
-            apiToken = project.extensions.poEditorPlugin.api_token
-            projectId = project.extensions.poEditorPlugin.project_id
-            defaultLang = project.extensions.poEditorPlugin.default_lang
-            resDirPath = project.extensions.poEditorPlugin.res_dir_path
-            generateTabletRes = project.extensions.poEditorPlugin.generate_tablet_res
-            fileName = project.extensions.poEditorPlugin.file_name
+      // Iterate over every available language
+      for (lang in langsJson.list) {
+         if (!checkProgress || lang.percentage > 97.0) {
+            parseLanguage(lang, apiToken, projectId, resDirPath, defaultLang, fileName)
+         } else {
+            println("Skipping Langague: ${lang.name}")
+         }
+      }
+   }
 
-            if (apiToken.length() == 0)
-                throw new Exception('Invalid params: api_token is ""');
-            if (projectId.length() == 0)
-                throw new Exception('Invalid params: project_id is ""');
-            if (defaultLang.length() == 0)
-                throw new Exception('Invalid params: default_lang is ""');
-            if (resDirPath.length() == 0)
-                throw new Exception('Invalid params: res_dir_path is ""');
-            if (fileName.length() == 0)
-                throw new Exception('Invalid params: file_name is ""');
+   private static void parseLanguage(it, apiToken, projectId, resDirPath, defaultLang, fileName) {
+      // Retrieve translation file URL for the given language
+      println "Retrieving translation file URL for language code: ${it}"
+      // TODO curl may not be installed in the host SO. Add a safe check and, if curl is not available, stop the process and print an error message
+      def translationFileInfo = ['curl', '-X', 'POST', '-d', "api_token=${apiToken}", '-d', 'action=export', '-d', "id=${projectId}", '-d', 'type=android_strings', '-d', "language=${it.code}", POEDITOR_API_URL].execute()
+      def translationFileInfoJson = new JsonSlurper().parseText(translationFileInfo.text)
+      def translationFileUrl = translationFileInfoJson.item
 
-        } catch (Exception e) {
-            throw new IllegalStateException(
-                    "You shoud define in your build.gradle: \n\n" +
-                            "poEditorPlugin.api_token = <your_api_token>\n" +
-                            "poEditorPlugin.project_id = <your_project_id>\n" +
-                            "poEditorPlugin.default_lang = <your_default_lang> \n" +
-                            "poEditorPlugin.res_dir_path = <your_res_dir_path> \n\n "
-                            + e.getMessage()
-            )
-        }
+      // Download translation File in "Android Strings" XML format
+      println "Downloading file from Url: ${translationFileUrl}"
+      //def translationFile = ['curl', '-H', '"charset=UTF-8"', '-X', 'GET', translationFileUrl].execute()
+      def translationFile = new URL(translationFileUrl)
 
-        // Retrieve available languages from PoEditor
-        def jsonSlurper = new JsonSlurper()
-        def langs = ['curl', '-X', 'POST', '-d', "api_token=${apiToken}", '-d', 'action=list_languages', '-d', "id=${projectId}", POEDITOR_API_URL].execute()
-        def langsJson = jsonSlurper.parseText(langs.text)
+      // Post process the downloaded XML:
+      def translationFileText = XMLCleaner.clean(translationFile.getText('UTF-8'))
 
-        // Check if the response was 200
-        if (langsJson.response.code != "200") {
-            throw new IllegalStateException(
-                    "An error occurred while trying to export from PoEditor API: \n\n" +
-                            langsJson.toString()
-            )
-        }
+      // If language folders doesn't exist, create it.
+      // TODO investigate if we can infer the res folder path instead of passing it using poEditorPlugin.res_dir_path
+      def valuesModifier = createValuesModifierFromLangCode(it.code)
+      def valuesFolder = valuesModifier != defaultLang ? "values-${valuesModifier}" : "values"
 
-        // Iterate over every available language
-        langsJson.list.each {
-            def check_progress = project.extensions.poEditorPlugin.only_download_complete_lang;
-            if (!check_progress || (check_progress && it.percentage > 97.0)) {
-                parseLanguage(it, apiToken, projectId, resDirPath, generateTabletRes, defaultLang, fileName)
-            } else {
-                println("Skipping Langague: ${it.name}")
-            }
-        }
-    }
+      def stringsFolder = new File("${resDirPath}/${valuesFolder}")
+      if (!stringsFolder.exists()) {
+         println 'Creating strings folder for new language'
+         def folderCreated = stringsFolder.mkdir()
+         println "Folder created: ${folderCreated}"
+      }
 
-    def parseLanguage(it, apiToken, projectId, resDirPath, generateTabletRes, defaultLang, fileName) {
-        def jsonSlurper = new JsonSlurper();
+      // Write downloaded and post-processed XML to files
+      println "Writing $fileName file"
+      new File(stringsFolder, fileName).withWriter('UTF-8') { w ->
+         w << translationFileText
+      }
+   }
 
-        // Retrieve translation file URL for the given language
-        println "Retrieving translation file URL for language code: ${it}"
-        // TODO curl may not be installed in the host SO. Add a safe check and, if curl is not available, stop the process and print an error message
-        def translationFileInfo = ['curl', '-X', 'POST', '-d', "api_token=${apiToken}", '-d', 'action=export', '-d', "id=${projectId}", '-d', 'type=android_strings', '-d', "language=${it.code}", 'https://poeditor.com/api/'].execute()
-        def translationFileInfoJson = jsonSlurper.parseText(translationFileInfo.text)
-        def translationFileUrl = translationFileInfoJson.item
-        // Download translation File in "Android Strings" XML format
-        println "Downloading file from Url: ${translationFileUrl}"
-        //def translationFile = ['curl', '-H', '"charset=UTF-8"', '-X', 'GET', translationFileUrl].execute()
-        def translationFile = new URL(translationFileUrl)
-
-        // Post process the downloaded XML:
-        def translationFileText = postProcessIncomingXMLString(translationFile.getText('UTF-8'))
-        // If language folders doesn't exist, create it (both for smartphones and tablets)
-        // TODO investigate if we can infer the res folder path instead of passing it using poEditorPlugin.res_dir_path
-        def valuesModifier = createValuesModifierFromLangCode(it.code)
-        def valuesFolder = valuesModifier != defaultLang ? "values-${valuesModifier}" : "values"
-
-        if (generateTabletRes) {
-            // Extract tablet strings to a separate strings XML
-            def translationFileRecords = new XmlParser().parseText(translationFileText)
-            def tabletNodes = translationFileRecords.children().findAll {
-                it.@name.endsWith('_tablet')
-            }
-            String tabletXmlString = """
-                        <resources>
-                         <!-- Tablet strings -->
-                        </resources>"""
-            def tabletRecords = new XmlParser().parseText(tabletXmlString)
-            tabletNodes.each {
-                translationFileRecords.remove(it)
-                it.@name = it.@name.replace("_tablet", "")
-                tabletRecords.append(it)
-            }
-
-            // Build final strings XMLs ready to be written to files
-            StringWriter sw = new StringWriter()
-            XmlNodePrinter np = new XmlNodePrinter(new PrintWriter(sw))
-            np.setPreserveWhitespace(true)
-            np.print(translationFileRecords)
-            def curatedStringsXmlText = sw.toString()
-            StringWriter tabletSw = new StringWriter()
-            XmlNodePrinter tabletNp = new XmlNodePrinter(new PrintWriter(tabletSw))
-
-            tabletNp.print(tabletRecords)
-            def curatedTabletStringsXmlText = tabletSw.toString()
-
-            if (curatedStringsXmlText.length() > 0) {
-                File stringsFolder = new File("${resDirPath}/${valuesFolder}")
-                if (!stringsFolder.exists()) {
-                    println 'Creating strings folder for new language'
-                    def folderCreated = stringsFolder.mkdir()
-                    println "Folder created: ${folderCreated}"
-                }
-                // Write downloaded and post-processed XML to files
-                println "Writing $fileName file"
-                new File(stringsFolder, fileName).withWriter { w ->
-                    w << curatedStringsXmlText
-                }
-            }
-
-            def tabletValuesFolder = valuesModifier != defaultLang ? "values-${valuesModifier}-sw600dp" : "values-sw600dp"
-            File tabletStringsFolder = new File("${resDirPath}/${tabletValuesFolder}")
-            if (!tabletStringsFolder.exists()) {
-                println 'Creating tablet strings folder for new language'
-                def tabletFolderCreated = tabletStringsFolder.mkdir()
-                println "Folder created: ${tabletFolderCreated}"
-            }
-
-            println "Writing tablet $fileName file"
-            new File(tabletStringsFolder, fileName).withWriter('UTF-8') { w ->
-                w << curatedTabletStringsXmlText
-            }
-        } else {
-            File stringsFolder = new File("${resDirPath}/${valuesFolder}")
-            if (!stringsFolder.exists()) {
-                println 'Creating strings folder for new language'
-                def folderCreated = stringsFolder.mkdir()
-                println "Folder created: ${folderCreated}"
-            }
-            // Write downloaded and post-processed XML to files
-            println "Writing $fileName file"
-            new File(stringsFolder, fileName).withWriter('UTF-8') { w ->
-                w << translationFileText
-            }
-        }
-    }
-
-    /**
-     * Creates values file modifier taking into account specializations (i.e values-es-rMX for Mexican)
-     * @param langCode
-     * @return proper values file modifier (i.e. es-rMX)
-     */
-    String createValuesModifierFromLangCode(String langCode) {
-        if (!langCode.contains("-")) {
-            return langCode
-        } else {
-            String[] langParts = langCode.split("-")
-            return langParts[0] + "-" + "r" + langParts[1].toUpperCase()
-        }
-    }
-
-    String postProcessIncomingXMLString(String incomingXMLString) {
-        return XMLCleaner.clean(incomingXMLString)
-    }
-
+   /**
+    * Creates values file modifier taking into account specializations (i.e values-es-rMX for Mexican)
+    * @param langCode
+    * @return proper values file modifier (i.e. es-rMX)
+    */
+   private static String createValuesModifierFromLangCode(String langCode) {
+      if (!langCode.contains("-")) {
+         return langCode
+      } else {
+         String[] langParts = langCode.split("-")
+         return langParts[0] + "-" + "r" + langParts[1].toUpperCase()
+      }
+   }
 }

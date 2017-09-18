@@ -7,23 +7,21 @@ package com.bq.gradle
  * Created by imartinez on 11/1/16.
  */
 class PoEditorPluginExtension {
-    // PoEditor API TOKEN
-    def String api_token = ""
+   // PoEditor API TOKEN
+   String apiToken = null
 
-    // PoEditor PROJECT ID
-    def String project_id = ""
+   // PoEditor PROJECT ID
+   String projectId = null
 
-    // Default (and fallback) language code: i.e. "es"
-    def String default_lang = "es"
+   // Default (and fallback) language code: i.e. "es"
+   String defaultLang = null
 
-    // Path to res/ directory: i.e. "${project.rootDir}/app/src/main/res"
-    def String res_dir_path = ""
+   // Path to res/ directory: i.e. "${project.rootDir}/app/src/main/res"
+   String destPath = null
 
-    def Boolean generate_tablet_res = false;
+   // File name for translations: i.e. "strings.xml"
+   String destFile = "strings.xml"
 
-    // File name for translations: i.e. "strings.xml"
-    def String file_name = "strings.xml"
-
-    // Downloads complete languages only
-    def Boolean only_download_complete_lang = false
+   // Downloads complete languages only
+   boolean discardIncompleteLanguages = true
 }
