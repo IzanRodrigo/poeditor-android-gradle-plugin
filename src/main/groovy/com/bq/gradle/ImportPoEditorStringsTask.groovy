@@ -24,6 +24,7 @@ class ImportPoEditorStringsTask extends DefaultTask {
         def projectId = ""
         def defaultLang = ""
         def resDirPath = ""
+        def fileName = ""
         def generateTabletRes = false
 
         try {
@@ -32,6 +33,7 @@ class ImportPoEditorStringsTask extends DefaultTask {
             defaultLang = project.extensions.poEditorPlugin.default_lang
             resDirPath = project.extensions.poEditorPlugin.res_dir_path
             generateTabletRes = project.extensions.poEditorPlugin.generate_tablet_res
+            fileName = project.extensions.poEditorPlugin.file_name
 
             if (apiToken.length() == 0)
                 throw new Exception('Invalid params: api_token is ""');
@@ -41,6 +43,8 @@ class ImportPoEditorStringsTask extends DefaultTask {
                 throw new Exception('Invalid params: default_lang is ""');
             if (resDirPath.length() == 0)
                 throw new Exception('Invalid params: res_dir_path is ""');
+            if (fileName.length() == 0)
+                throw new Exception('Invalid params: file_name is ""');
 
         } catch (Exception e) {
             throw new IllegalStateException(
@@ -70,14 +74,14 @@ class ImportPoEditorStringsTask extends DefaultTask {
         langsJson.list.each {
             def check_progress = project.extensions.poEditorPlugin.only_download_complete_lang;
             if( !check_progress || (check_progress && it.percentage > 97.0)) {
-                parseLanguage(it, apiToken, projectId, resDirPath, generateTabletRes, defaultLang)
+                parseLanguage(it, apiToken, projectId, resDirPath, generateTabletRes, defaultLang, fileName)
             }else{
                 println("Skipping Langague: ${it.name}")
             }
         }
     }
 
-     def parseLanguage(it, apiToken, projectId, resDirPath, generateTabletRes, defaultLang) {
+     def parseLanguage(it, apiToken, projectId, resDirPath, generateTabletRes, defaultLang, fileName) {
         def jsonSlurper = new JsonSlurper();
 
         // Retrieve translation file URL for the given language
@@ -135,8 +139,8 @@ class ImportPoEditorStringsTask extends DefaultTask {
                     println "Folder created: ${folderCreated}"
                 }
                 // Write downloaded and post-processed XML to files
-                println "Writing strings.xml file"
-                new File(stringsFolder, 'strings.xml').withWriter { w ->
+                println "Writing $fileName file"
+                new File(stringsFolder, fileName).withWriter { w ->
                     w << curatedStringsXmlText
                 }
             }
@@ -149,8 +153,8 @@ class ImportPoEditorStringsTask extends DefaultTask {
                 println "Folder created: ${tabletFolderCreated}"
             }
 
-            println "Writing tablet strings.xml file"
-            new File(tabletStringsFolder, 'strings.xml').withWriter('UTF-8') { w ->
+            println "Writing tablet $fileName file"
+            new File(tabletStringsFolder, fileName).withWriter('UTF-8') { w ->
                 w << curatedTabletStringsXmlText
             }
         } else {
@@ -161,8 +165,8 @@ class ImportPoEditorStringsTask extends DefaultTask {
                 println "Folder created: ${folderCreated}"
             }
             // Write downloaded and post-processed XML to files
-            println "Writing strings.xml file"
-            new File(stringsFolder, 'strings.xml').withWriter('UTF-8') { w ->
+            println "Writing $fileName file"
+            new File(stringsFolder, fileName).withWriter('UTF-8') { w ->
                 w << translationFileText
             }
         }

@@ -9,14 +9,20 @@ package com.bq.gradle
 class PoEditorPluginExtension {
     // PoEditor API TOKEN
     def String api_token = ""
+
     // PoEditor PROJECT ID
     def String project_id = ""
+
     // Default (and fallback) language code: i.e. "es"
     def String default_lang = "es"
+
     // Path to res/ directory: i.e. "${project.rootDir}/app/src/main/res"
     def String res_dir_path = ""
 
     def Boolean generate_tablet_res = false;
+
+    // File name for translations: i.e. "strings.xml"
+    def String file_name = "strings.xml"
 
     // Downloads complete languages only
     def Boolean only_download_complete_lang = false
