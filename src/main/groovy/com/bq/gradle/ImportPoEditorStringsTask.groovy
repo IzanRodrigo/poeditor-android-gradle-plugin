@@ -49,11 +49,11 @@ class ImportPoEditorStringsTask extends DefaultTask {
         } catch (Exception e) {
             throw new IllegalStateException(
                     "You shoud define in your build.gradle: \n\n" +
-                    "poEditorPlugin.api_token = <your_api_token>\n" +
-                    "poEditorPlugin.project_id = <your_project_id>\n" +
-                    "poEditorPlugin.default_lang = <your_default_lang> \n" +
-                    "poEditorPlugin.res_dir_path = <your_res_dir_path> \n\n "
-                    + e.getMessage()
+                            "poEditorPlugin.api_token = <your_api_token>\n" +
+                            "poEditorPlugin.project_id = <your_project_id>\n" +
+                            "poEditorPlugin.default_lang = <your_default_lang> \n" +
+                            "poEditorPlugin.res_dir_path = <your_res_dir_path> \n\n "
+                            + e.getMessage()
             )
         }
 
@@ -73,15 +73,15 @@ class ImportPoEditorStringsTask extends DefaultTask {
         // Iterate over every available language
         langsJson.list.each {
             def check_progress = project.extensions.poEditorPlugin.only_download_complete_lang;
-            if( !check_progress || (check_progress && it.percentage > 97.0)) {
+            if (!check_progress || (check_progress && it.percentage > 97.0)) {
                 parseLanguage(it, apiToken, projectId, resDirPath, generateTabletRes, defaultLang, fileName)
-            }else{
+            } else {
                 println("Skipping Langague: ${it.name}")
             }
         }
     }
 
-     def parseLanguage(it, apiToken, projectId, resDirPath, generateTabletRes, defaultLang, fileName) {
+    def parseLanguage(it, apiToken, projectId, resDirPath, generateTabletRes, defaultLang, fileName) {
         def jsonSlurper = new JsonSlurper();
 
         // Retrieve translation file URL for the given language
@@ -127,7 +127,7 @@ class ImportPoEditorStringsTask extends DefaultTask {
             def curatedStringsXmlText = sw.toString()
             StringWriter tabletSw = new StringWriter()
             XmlNodePrinter tabletNp = new XmlNodePrinter(new PrintWriter(tabletSw))
-            
+
             tabletNp.print(tabletRecords)
             def curatedTabletStringsXmlText = tabletSw.toString()
 
@@ -187,25 +187,7 @@ class ImportPoEditorStringsTask extends DefaultTask {
     }
 
     String postProcessIncomingXMLString(String incomingXMLString) {
-        // Post process the downloaded XML
-        return incomingXMLString
-                // Replace % with %% if not negative lookahead of a properly formatted
-                .replaceAll(/%(?![0-9a-z]+(|\$[a-z]?))/, "%%")
-                // Replace placeholders from {{bookTitle}} to %1$s format.
-                // First of all, manage each strings separately
-                .split('</string>').collect { s ->
-                    // Second, replace each placeholder taking into account ther order set as part of the placeholder
-                    def placeHolderInStringCounter = 1
-                    s.replaceAll("\\{\\d?\\{(.*?)\\}\\}") { it ->
-                        // If the placeholder contains an ordinal, use it: {2{pages_count}} -> %2%s
-                        def match = it[0].toString()
-                        if (Character.isDigit(match.charAt(1))) {
-                            '%' + match.charAt(1) + '$s'
-                        } else { // If not, use '1' as the ordinal: {{pages_count}} -> %1%s
-                            '%1$s'
-                        }
-                    }
-                }.join('</string>')
+        return XMLCleaner.clean(incomingXMLString)
     }
 
 }
