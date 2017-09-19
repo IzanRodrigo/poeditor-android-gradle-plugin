@@ -22,6 +22,6 @@ class PoEditorPluginExtension {
    // File name for translations: i.e. "strings.xml"
    String destFile = "strings.xml"
 
-   // Downloads complete languages only
-   boolean discardIncompleteLanguages = true
+   // Download languages
+   float minLanguageProgress = 95.0
 }

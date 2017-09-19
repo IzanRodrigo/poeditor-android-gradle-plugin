@@ -24,7 +24,7 @@ class ImportPoEditorStringsTask extends DefaultTask {
       def defaultLang = Objects.requireNonNull(args.defaultLang, "defaultLang == null")
       def resDirPath = Objects.requireNonNull(args.destPath, "destPath == null")
       def fileName = Objects.requireNonNull(args.destFile, "destFile == null")
-      def checkProgress = !args.discardIncompleteLanguages;
+      def minLanguageProgress = args.minLanguageProgress;
 
       // Retrieve available languages from PoEditor
       def jsonParser = new JsonSlurper()
@@ -41,7 +41,7 @@ class ImportPoEditorStringsTask extends DefaultTask {
 
       // Iterate over every available language
       for (lang in langsJson.list) {
-         if (!checkProgress || lang.percentage > 97.0) {
+         if (lang.percentage > minLanguageProgress) {
             parseLanguage(lang, apiToken, projectId, resDirPath, defaultLang, fileName)
          } else {
             println("Skipping Langague: ${lang.name}")
