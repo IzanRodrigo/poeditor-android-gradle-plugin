@@ -2,18 +2,18 @@ package com.bq.gradle
 
 public class XMLCleaner {
    public static String clean(String source) {
-      def matcher = source =~ '<string name="(.*)">(.*)</string>'
+      def entries = new XmlSlurper()
+            .parseText(source.trim())
+            .string
+            .collect {
+               def name = it.@name.text()
+               def value = it.text()
+               cleanEntry(name, value)
+            }
+            .sort()
 
-      def entries = new ArrayList<String>()
-      while (matcher.find()) {
-         def name = matcher.group(1)
-         def value = matcher.group(2)
-         def entry = cleanEntry(name, value)
-         entries.add(entry)
-      }
-      Collections.sort(entries)
-
-      def cleanXml = new StringBuilder("<resources>")
+      def cleanXml = new StringBuilder('<?xml version="1.0" encoding="utf-8"?>')
+      cleanXml.append("\n<resources>")
       for (entry in entries) {
          cleanXml.append("\n\t" + entry)
       }
