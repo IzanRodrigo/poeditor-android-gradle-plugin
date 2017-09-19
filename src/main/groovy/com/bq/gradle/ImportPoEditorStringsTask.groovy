@@ -24,7 +24,7 @@ class ImportPoEditorStringsTask extends DefaultTask {
       def defaultLang = Objects.requireNonNull(args.defaultLang, "defaultLang == null")
       def resDirPath = Objects.requireNonNull(args.destPath, "destPath == null")
       def fileName = Objects.requireNonNull(args.destFile, "destFile == null")
-      def checkProgress = args.discardIncompleteLanguages;
+      def checkProgress = !args.discardIncompleteLanguages;
 
       // Retrieve available languages from PoEditor
       def jsonParser = new JsonSlurper()
