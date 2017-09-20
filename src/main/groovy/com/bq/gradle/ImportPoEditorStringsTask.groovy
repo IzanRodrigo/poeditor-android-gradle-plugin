@@ -5,10 +5,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
 
 /**
- * Task that:
- * 1. downloads all strings files (every available lang) from PoEditor given a api_token and project_id.
- * 2. extract "tablet" strings to another own XML (strings with the suffix "_tablet")
- * 3. creates and saves two strings.xml files to values-<lang> and values-<lang>-sw600dp (tablet specific strings)
+ * Task that downloads all strings files (every available lang) from PoEditor given a apiToken and projectId.
  *
  * Created by imartinez on 11/1/16.
  */
@@ -28,7 +25,7 @@ class ImportPoEditorStringsTask extends DefaultTask {
 
       // Retrieve available languages from PoEditor
       def jsonParser = new JsonSlurper()
-      def langs = ['curl', '-X', 'POST', '-d', "api_token=${apiToken}", '-d', 'action=list_languages', '-d', "id=${projectId}", POEDITOR_API_URL].execute()
+      def langs = ['curl', '-X', 'POST', '-d', "api_token=$apiToken", '-d', 'action=list_languages', '-d', "id=$projectId", POEDITOR_API_URL].execute()
       def langsJson = jsonParser.parseText(langs.text)
 
       // Check if the response was 200
@@ -41,25 +38,24 @@ class ImportPoEditorStringsTask extends DefaultTask {
 
       // Iterate over every available language
       for (lang in langsJson.list) {
-         if (lang.percentage > minLanguageProgress) {
+         if (minLanguageProgress == null || lang.percentage > minLanguageProgress) {
             parseLanguage(lang, apiToken, projectId, resDirPath, defaultLang, fileName)
          } else {
-            println("Skipping Langague: ${lang.name}")
+            println "Skipping Langague: $lang.name"
          }
       }
    }
 
    private static void parseLanguage(it, apiToken, projectId, resDirPath, defaultLang, fileName) {
       // Retrieve translation file URL for the given language
-      println "Retrieving translation file URL for language code: ${it}"
+      println "Retrieving translation file URL for language code: $it"
       // TODO curl may not be installed in the host SO. Add a safe check and, if curl is not available, stop the process and print an error message
-      def translationFileInfo = ['curl', '-X', 'POST', '-d', "api_token=${apiToken}", '-d', 'action=export', '-d', "id=${projectId}", '-d', 'type=android_strings', '-d', "language=${it.code}", POEDITOR_API_URL].execute()
+      def translationFileInfo = ['curl', '-X', 'POST', '-d', "api_token=$apiToken", '-d', 'action=export', '-d', "id=$projectId", '-d', 'type=android_strings', '-d', "language=$it.code", POEDITOR_API_URL].execute()
       def translationFileInfoJson = new JsonSlurper().parseText(translationFileInfo.text)
       def translationFileUrl = translationFileInfoJson.item
 
       // Download translation File in "Android Strings" XML format
-      println "Downloading file from Url: ${translationFileUrl}"
-      //def translationFile = ['curl', '-H', '"charset=UTF-8"', '-X', 'GET', translationFileUrl].execute()
+      println "Downloading file from Url: $translationFileUrl"
       def translationFile = new URL(translationFileUrl)
 
       // Post process the downloaded XML:
@@ -68,13 +64,13 @@ class ImportPoEditorStringsTask extends DefaultTask {
       // If language folders doesn't exist, create it.
       // TODO investigate if we can infer the res folder path instead of passing it using poEditorPlugin.res_dir_path
       def valuesModifier = createValuesModifierFromLangCode(it.code)
-      def valuesFolder = valuesModifier != defaultLang ? "values-${valuesModifier}" : "values"
+      def valuesFolder = valuesModifier != defaultLang ? "values-$valuesModifier" : "values"
 
-      def stringsFolder = new File("${resDirPath}/${valuesFolder}")
+      def stringsFolder = new File("$resDirPath/$valuesFolder")
       if (!stringsFolder.exists()) {
          println 'Creating strings folder for new language'
          def folderCreated = stringsFolder.mkdir()
-         println "Folder created: ${folderCreated}"
+         println "Folder created: $folderCreated"
       }
 
       // Write downloaded and post-processed XML to files

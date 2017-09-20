@@ -34,9 +34,7 @@ public class XMLCleaner {
    }
 
    private static String cleanValue(String source) {
-      return source.replaceAll("\\...", "…")
-            .replaceAll('"(?i)Ok"', "@android:string/ok")
-            .replaceAll('"(?i)Cancel"', "@android:string/cancel")
+      return source.replaceAll(" *\\...", "…")
             .replaceAll("%%@", "%s")
             .replaceAll("%@", "%s")
    }
