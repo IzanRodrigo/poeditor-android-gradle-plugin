@@ -5,6 +5,7 @@ public class XMLCleaner {
       def entries = new XmlSlurper()
             .parseText(source.trim())
             .string
+            .findAll { it.text().length() > 0 }
             .collect {
                def name = it.@name.text()
                def value = it.text()
