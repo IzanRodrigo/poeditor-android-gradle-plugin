@@ -32,11 +32,14 @@ public class XMLCleaner {
    private static String cleanName(String source) {
       return source.replaceAll("\\+", "_")
             .toLowerCase()
+            .trim()
    }
 
    private static String cleanValue(String source) {
       return source.replaceAll(" *\\...", "…")
             .replaceAll("%%@", "%s")
             .replaceAll("%@", "%s")
+            .replaceAll("\\n\\s*\"", "\"")
+            .trim()
    }
 }
