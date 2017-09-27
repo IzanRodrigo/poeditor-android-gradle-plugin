@@ -36,7 +36,8 @@ public class XMLCleaner {
    }
 
    private static String cleanValue(String source) {
-      return source.replaceAll(" *\\...", "…")
+      return source.replaceAll(" *\\.\\.\\.", "…")
+            .replaceAll("%@s", "%s")
             .replaceAll("%%@", "%s")
             .replaceAll("%@", "%s")
             .replaceAll("\\n\\s*\"", "\"")
