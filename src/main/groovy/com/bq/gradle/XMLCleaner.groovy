@@ -1,7 +1,5 @@
 package com.bq.gradle
 
-import groovy.json.StringEscapeUtils
-
 class XMLCleaner {
    static String clean(String source) {
       def entries = new XmlSlurper()
@@ -38,13 +36,13 @@ class XMLCleaner {
    }
 
    private static def cleanValue(String source) {
-      def string = source
-            .replaceAll(" *\\.\\.\\.", "…") // Use recommended ellipsis character (…).
+      return source
+            .replaceAll(" *\\.\\.\\.", "…") // Use recommended ellipsis character '…'.
+            .replaceAll("&", "&amp;") // Encode '&' character.
             .replaceAll("%@s", "%s") // \
             .replaceAll("%%@", "%s") //  > Format iOS strings.
             .replaceAll("%@", "%s")  // /
             .replaceAll("\\n\\s*\"", "\"") // Trim strings.
             .trim()
-      return StringEscapeUtils.escapeJava(string)
    }
 }
