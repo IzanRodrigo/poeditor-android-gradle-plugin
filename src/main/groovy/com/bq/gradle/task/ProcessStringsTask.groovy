@@ -17,7 +17,8 @@ class ProcessStringsTask extends POEditorTask {
             def destDirName = (lang == config.defaultLang) ? "values" : "values-$lang"
             def destDir = new File(config.resPath, destDirName)
             destDir.mkdir()
-            def destFile = new File(destDir, "translations.xml")
+            def destFileName = config.fileName ?: "strings.xml"
+            def destFile = new File(destDir, destFileName)
             destFile.write(xml, "UTF-8")
          }
       }
