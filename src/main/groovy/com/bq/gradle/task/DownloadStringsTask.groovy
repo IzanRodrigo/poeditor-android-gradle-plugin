@@ -26,20 +26,22 @@ class DownloadStringsTask extends POEditorTask {
       }
 
       // Clear previous download dir
-      new File(config.downloadPath).eachFile { it.delete() }
+      def dir = new File(config.downloadPath)
+      if (!dir.exists()) dir.mkdir()
+      dir.eachFile { it.delete() }
 
       // Iterate over every available language
       def desiredLangs = config.desiredLangs
       for (lang in langsJson.list) {
          if (desiredLangs == null || lang.code in desiredLangs) {
-            download(lang, config.apiToken, config.projectId, config.downloadPath)
+            download(lang, config.apiToken, config.projectId, dir)
          } else {
             println "Skipping Language: $lang.name"
          }
       }
    }
 
-   private static void download(it, apiToken, projectId, String downloadPath) {
+   private static void download(it, apiToken, projectId, File downloadDir) {
       // Retrieve translation file URL for the given language
       println "Retrieving translation file URL for language code: $it"
       // TODO curl may not be installed in the host SO. Add a safe check and, if curl is not available, stop the process and print an error message
@@ -52,20 +54,10 @@ class DownloadStringsTask extends POEditorTask {
       def translationFile = new URL(translationFileUrl)
       def translationFileText = translationFile.getText('UTF-8')
 
-      // If language folders doesn't exist, create it.
-      // TODO investigate if we can infer the res folder path instead of passing it using poEditorPlugin.res_dir_path
-
-      def stringsFolder = new File(downloadPath)
-      if (!stringsFolder.exists()) {
-         println 'Creating strings folder for new language'
-         def folderCreated = stringsFolder.mkdir()
-         println "Folder created: $folderCreated"
-      }
-
       // Write downloaded and post-processed XML to files
       def fileName = "${createValuesModifierFromLangCode(it.code)}.xml"
       println "Writing $fileName file"
-      new File(stringsFolder, fileName).withWriter('UTF-8') { w ->
+      new File(downloadDir, fileName).withWriter('UTF-8') { w ->
          w << translationFileText
       }
    }

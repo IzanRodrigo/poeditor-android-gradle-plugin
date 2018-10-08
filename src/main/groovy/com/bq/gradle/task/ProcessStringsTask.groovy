@@ -8,7 +8,9 @@ import org.gradle.api.tasks.TaskAction
 class ProcessStringsTask extends POEditorTask {
    @TaskAction
    def processStrings() {
-      new File(config.downloadPath).eachFile(FileType.FILES) {
+      def dir = new File(config.downloadPath)
+      if (!dir.exists()) dir.mkdir()
+      dir.eachFile(FileType.FILES) {
          if (it.name.contains(".")) {
             def lang = it.name.take(it.name.lastIndexOf("."))
             def sourceStrings = XMLParser.parse(it.getText("UTF-8"))
