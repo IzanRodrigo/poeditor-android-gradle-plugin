@@ -45,6 +45,11 @@ class POEditorConfig {
    @Nullable
    List<String> desiredLangs = null
 
+   /**
+    * Enable/disble emojis in translations.
+    */
+   boolean useEmojis = true
+
    @Override
    String toString() {
       return "POEditorConfig{" +

@@ -1,10 +1,12 @@
 package com.bq.gradle.data
 
+import com.vdurmont.emoji.EmojiParser
+
 class XMLCleaner {
-   static Map<String, String> clean(Map<String, String> entries) {
+   static Map<String, String> clean(Map<String, String> entries, boolean useEmojis) {
       return entries.collectEntries {
          def newName = cleanName(it.key)
-         def newValue = cleanValue(it.value)
+         def newValue = cleanValue(it.value, useEmojis)
          [(newName): newValue]
       } as Map<String, String>
    }
@@ -17,8 +19,9 @@ class XMLCleaner {
             .trim()
    }
 
-   private static def cleanValue(String source) {
-      return source
+   private static def cleanValue(String source, boolean useEmojis) {
+      def str = useEmojis ? source : EmojiParser.removeAllEmojis(source)
+      return str
             .replaceAll(" *\\.\\.\\.", "…") // Use recommended ellipsis character '…'.
             .replaceAll("&", "&amp;") // Encode '&' character.
             .replaceAll("%@s", "%s") // \

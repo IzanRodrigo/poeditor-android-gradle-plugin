@@ -12,7 +12,7 @@ class ProcessStringsTask extends POEditorTask {
          if (it.name.contains(".")) {
             def lang = it.name.take(it.name.lastIndexOf("."))
             def sourceStrings = XMLParser.parse(it.getText("UTF-8"))
-            def cleanStrings = XMLCleaner.clean(sourceStrings)
+            def cleanStrings = XMLCleaner.clean(sourceStrings, config.useEmojis)
             def xml = XMLParser.buildXml(cleanStrings)
             def destDirName = (lang == config.defaultLang) ? "values" : "values-$lang"
             def destDir = new File(config.resPath, destDirName)
