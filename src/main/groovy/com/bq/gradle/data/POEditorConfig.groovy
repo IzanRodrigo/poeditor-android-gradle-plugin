@@ -40,15 +40,10 @@ class POEditorConfig {
    String fileName = null
 
    /**
-    * Download only the specified languages (if any).
+    * Ignore the specified languages.
     */
    @Nullable
-   List<String> desiredLangs = null
-
-   /**
-    * Enable/disble emojis in translations.
-    */
-   boolean useEmojis = true
+   List<String> excludedLangs = null
 
    @Override
    String toString() {
@@ -59,7 +54,7 @@ class POEditorConfig {
             ", downloadPath='" + downloadPath + '\'' +
             ", resPath='" + resPath + '\'' +
             ", fileName='" + fileName + '\'' +
-            ", minLanguageProgress=" + minLanguageProgress +
+            ", excludedLangs=" + excludedLangs +
             '}';
    }
 }

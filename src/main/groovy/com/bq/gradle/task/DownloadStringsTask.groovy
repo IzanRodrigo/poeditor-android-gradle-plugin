@@ -31,12 +31,12 @@ class DownloadStringsTask extends POEditorTask {
       dir.eachFile { it.delete() }
 
       // Iterate over every available language
-      def desiredLangs = config.desiredLangs
+      def excludedLangs = config.excludedLangs
       for (lang in langsJson.list) {
-         if (desiredLangs == null || lang.code in desiredLangs) {
-            download(lang, config.apiToken, config.projectId, dir)
-         } else {
+         if (excludedLangs != null && lang.code in excludedLangs) {
             println "Skipping Language: $lang.name"
+         } else {
+            download(lang, config.apiToken, config.projectId, dir)
          }
       }
    }

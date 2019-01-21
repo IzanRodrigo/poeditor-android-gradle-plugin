@@ -14,13 +14,25 @@ class ProcessStringsTask extends POEditorTask {
          if (it.name.contains(".")) {
             def lang = it.name.take(it.name.lastIndexOf("."))
             def sourceStrings = XMLParser.parse(it.getText("UTF-8"))
-            def cleanStrings = XMLCleaner.clean(sourceStrings, config.useEmojis)
+
+            // Write strings without emojis.
+            def cleanStrings = XMLCleaner.clean(sourceStrings, false)
             def xml = XMLParser.buildXml(cleanStrings)
             def destDirName = (lang == config.defaultLang) ? "values" : "values-$lang"
             def destDir = new File(config.resPath, destDirName)
             destDir.mkdir()
             def destFileName = config.fileName ?: "strings.xml"
             def destFile = new File(destDir, destFileName)
+            destFile.write(xml, "UTF-8")
+
+            // Write strings with emojis for Android M+
+            cleanStrings = XMLCleaner.clean(sourceStrings, true)
+            xml = XMLParser.buildXml(cleanStrings)
+            destDirName = (lang == config.defaultLang) ? "values-v23" : "values-$lang-v23"
+            destDir = new File(config.resPath, destDirName)
+            destDir.mkdir()
+            destFileName = config.fileName ?: "strings.xml"
+            destFile = new File(destDir, destFileName)
             destFile.write(xml, "UTF-8")
          }
       }
