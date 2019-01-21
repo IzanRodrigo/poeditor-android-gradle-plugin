@@ -53,6 +53,7 @@ class DownloadStringsTask extends POEditorTask {
       println "Downloading file from Url: $translationFileUrl"
       def translationFile = new URL(translationFileUrl)
       def translationFileText = translationFile.getText('UTF-8')
+            .replaceAll("<!--[\\s\\S]*?-->", "") // Remove comments.
 
       // Write downloaded and post-processed XML to files
       def fileName = "${createValuesModifierFromLangCode(it.code)}.xml"
